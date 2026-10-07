@@ -1,0 +1,97 @@
+{
+  "publisher": "Kenney",
+  "source": "https://kenney.nl/media/pages/assets/space-kit/20874c75ac-1677698978/kenney_space-kit.zip",
+  "license": "CC0-1.0",
+  "assets": [
+    {
+      "id": "astronautA",
+      "path": "space-kit/astronautA.glb",
+      "format": "GLB",
+      "bytes": 27912,
+      "sha256": "9db62dd9790beadc1b8e45cf9623e99ade21751bb23f16dfe1b8cfb05a54f3b5",
+      "source": "https://kenney.nl/assets/space-kit",
+      "license": "CC0-1.0",
+      "downloadedAt": "2026-10-07"
+    },
+    {
+      "id": "astronautB",
+      "path": "space-kit/astronautB.glb",
+      "format": "GLB",
+      "bytes": 27824,
+      "sha256": "6fa5b3e11cb3d117b28a0794b261ad9107f16ca6ce886b288493e22493d74d2d",
+      "source": "https://kenney.nl/assets/space-kit",
+      "license": "CC0-1.0",
+      "downloadedAt": "2026-10-07"
+    },
+    {
+      "id": "alien",
+      "path": "space-kit/alien.glb",
+      "format": "GLB",
+      "bytes": 27784,
+      "sha256": "c041e8ed0eff82f0b25b944a8107f1268ddbec9c2c93afedc4ee0e8b047d983d",
+      "source": "https://kenney.nl/assets/space-kit",
+      "license": "CC0-1.0",
+      "downloadedAt": "2026-10-07"
+    },
+    {
+      "id": "rover",
+      "path": "space-kit/rover.glb",
+      "format": "GLB",
+      "bytes": 13384,
+      "sha256": "9784549775017e540ab84e6fc0eb8a1902dbeff9ba4285cecb97c086d2937fa5",
+      "source": "https://kenney.nl/assets/space-kit",
+      "license": "CC0-1.0",
+      "downloadedAt": "2026-10-07"
+    },
+    {
+      "id": "turret_double",
+      "path": "space-kit/turret_double.glb",
+      "format": "GLB",
+      "bytes": 50484,
+      "sha256": "a707823a86f895f6418df2340f2e231d7d88be6c2069d3245433299cec1f9f9c",
+      "source": "https://kenney.nl/assets/space-kit",
+      "license": "CC0-1.0",
+      "downloadedAt": "2026-10-07"
+    },
+    {
+      "id": "weapon_rifle",
+      "path": "space-kit/weapon_rifle.glb",
+      "format": "GLB",
+      "bytes": 8740,
+      "sha256": "266ffd12306a2afc2638e9a479687adf738fc3cd9e938ce8e3195ccb312a6b31",
+      "source": "https://kenney.nl/assets/space-kit",
+      "license": "CC0-1.0",
+      "downloadedAt": "2026-10-07"
+    },
+    {
+      "id": "craft_speederA",
+      "path": "space-kit/craft_speederA.glb",
+      "format": "GLB",
+      "bytes": 20496,
+      "sha256": "dc48652fa5c59088a5e3902abce7598199f32e0dcb8c91bac25e17bb8ce15876",
+      "source": "https://kenney.nl/assets/space-kit",
+      "license": "CC0-1.0",
+      "downloadedAt": "2026-10-07"
+    },
+    {
+      "id": "platform_straight",
+      "path": "space-kit/platform_straight.glb",
+      "format": "GLB",
+      "bytes": 6324,
+      "sha256": "acf271a4db9af11bef2422e5351c04f93baa46f00baee225f8b87ec320e9c61a",
+      "source": "https://kenney.nl/assets/space-kit",
+      "license": "CC0-1.0",
+      "downloadedAt": "2026-10-07"
+    },
+    {
+      "id": "rock_largeA",
+      "path": "space-kit/rock_largeA.glb",
+      "format": "GLB",
+      "bytes": 13224,
+      "sha256": "13b2bf393fcd7ca8c73d8a2a731da0be6c2c2b4e67ef0ae826e816c0d8733f2f",
+      "source": "https://kenney.nl/assets/space-kit",
+      "license": "CC0-1.0",
+      "downloadedAt": "2026-10-07"
+    }
+  ]
+}

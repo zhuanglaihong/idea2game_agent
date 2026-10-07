@@ -1,0 +1,26 @@
+{
+  "notice": "Imported at user request for a non-official demonstration. Attribution is not a license grant. Do not describe these resources as CC0 or independently licensed.",
+  "assets": [
+    {
+      "path": "reference/art/terran-deck.webp",
+      "source": "https://starcraft-shooter-2026.pages.dev/assets/art/terran-deck.webp?v=5b495f8364",
+      "sha256": "5b495f83640cb5e73fa5f781140519399661ea98d98744b8096cfb7a5210d5c2",
+      "bytes": 435310,
+      "rights": "Ji / reference site; no redistribution license verified"
+    },
+    {
+      "path": "reference/ui/marine.webp",
+      "source": "https://starcraft-shooter-2026.pages.dev/assets/ui/marine.webp?v=b215090663",
+      "sha256": "b215090663f9143fd12104c2d127bdff4676e0fc4206ce45e1ed7ebacb859a7f",
+      "bytes": 57124,
+      "rights": "Ji / reference site; no redistribution license verified"
+    },
+    {
+      "path": "reference/fx/droppod-scorch.png",
+      "source": "https://starcraft-shooter-2026.pages.dev/assets/fx/droppod-scorch.png?v=a6ee7347f4",
+      "sha256": "a6ee7347f4d2e5af74a054185c0b0fed562491f6cd15be01c46624a70e4888f5",
+      "bytes": 121388,
+      "rights": "Ji / reference site; no redistribution license verified"
+    }
+  ]
+}

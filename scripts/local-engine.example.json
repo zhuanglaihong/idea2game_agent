@@ -1,0 +1,10 @@
+{
+  "workspace": "D:/your-game-projects",
+  "project": "D:/your-game-projects/blade-arena",
+  "engines": {
+    "unity": "C:/Program Files/Unity/Hub/Editor/YOUR_VERSION/Editor/Unity.exe",
+    "godot": "D:/tools/Godot/Godot.exe"
+  },
+  "preset": "Web",
+  "timeoutMs": 600000
+}
