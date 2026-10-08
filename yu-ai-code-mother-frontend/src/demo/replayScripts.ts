@@ -1,5 +1,5 @@
 export interface ReplayStep { title: string; type: 'analysis' | 'tool' | 'result'; file: string; text: string }
-export const replayStages = ['需求分析', '界面骨架', '游戏美术', '玩法与交互', '交付试玩']
+export const replayStages = ['场景与地形', '角色与卡牌', '敌人与素材', '武器与交互', '交付试玩']
 export const replayScripts = {
  tiles: [
   {title:'方案分析',type:'analysis',file:'design/requirements',text:'设计摘要：采用叠层三消规则，七格槽形成策略压力。每层以三张为一组生成卡牌，保留合法消除路径；上层遮挡下层，只允许选择可见牌。视觉采用浅绿草地、米白卡牌、粗描边农场插画。桌面与手机统一点击操作。'},

@@ -2,11 +2,40 @@
 (() => {
   'use strict';
   const cfg = window.GAME_CONFIG;
+  const building=cfg.previewStage!=null&&cfg.previewStage<5;
+  const buildPhase=cfg.previewStage??5;
+  const buildStarted=performance.now();
+  const revealCount=()=>building?Math.floor((performance.now()-buildStarted)/130)+1:Infinity;
+  if(building&&document.querySelectorAll){
+    document.querySelectorAll('.buttons,.skills,.traits,.hint,header,.level').forEach(el=>el.style.visibility=buildPhase>=4?'visible':'hidden');
+    const banner=document.createElement('div');banner.textContent=['分析玩法，准备工程','搭建场景与地形','放置角色与卡牌','加入敌人与游戏图案','连接武器、规则与界面'][buildPhase];
+    Object.assign(banner.style,{position:'absolute',top:'12px',left:'12px',right:'12px',zIndex:10,padding:'10px',background:'#172c36dd',color:'#fff',borderRadius:'8px',font:'13px system-ui',pointerEvents:'none'});canvasBanner();
+    function canvasBanner(){document.getElementById('battlefield').append(banner);}
+  }
   const edits=cfg.elementEdits||{};
   let editing=false,coverWasHidden=false;
   let selectionMark;
-  function selectElement(id){parent.postMessage({type:'idea2game:element-selected',element:{id,name:({player:'玩家角色',weapon:'武器',enemy:'敌人',scene:'场景',cards:'卡牌'})[id]},kind:cfg.kind},'*');}
-  window.addEventListener('message',e=>{if(e.source!==parent||e.data?.type!=='idea2game:edit-mode')return;const enabled=Boolean(e.data.enabled);if(enabled&&!editing){coverWasHidden=$('cover').hidden;$('cover').hidden=true;}if(!enabled&&editing){$('cover').hidden=coverWasHidden;if(selectionMark)selectionMark.style.display='none';}editing=enabled;pointer.down=false;keys.clear();if(editing&&state==='playing')pause();canvas.style.cursor=editing?'crosshair':'';});
+  let selectedId,selectedCard,selectedEnemy;
+  const selectionNames={player:'玩家角色',weapon:'环绕飞刀',enemy:'敌人',scene:'场景',cards:'卡牌图案'};
+  function selectElement(id){selectedId=id;parent.postMessage({type:'idea2game:element-selected',element:{id,name:selectionNames[id]},kind:cfg.kind},'*');}
+  function drawSelection(){
+    if(!editing||!selectedId){if(selectionMark)selectionMark.style.display='none';return;}
+    if(!document.createElement)return;
+    if(!selectionMark){selectionMark=document.createElement('div');selectionMark.setAttribute('aria-label','游戏元素选中标记');Object.assign(selectionMark.style,{position:'absolute',border:'3px solid #ffd166',boxShadow:'0 0 0 3px #17283999,0 0 22px #ffd166aa',borderRadius:'12px',pointerEvents:'none',zIndex:20,boxSizing:'border-box'});canvas.parentElement.append(selectionMark);}
+    let b={x:6,y:6,w:W-12,h:H-12};
+    if(cfg.kind==='zombies'&&expedition?.selectionBounds&&selectedId!=='scene'){b=expedition.selectionBounds(selectedId)||b;}
+    else if(selectedId==='cards'){const c=selectedCard&&!selectedCard.removed?selectedCard:cards.find(c=>!c.removed&&available(c));if(c){const r=rect(c);b={x:r.x-3,y:r.y-3,w:r.w+6,h:r.h+12};}}
+    else if(selectedId!=='scene'){
+      let p=player;
+      if(selectedId==='enemy')p=selectedEnemy||enemies[0]||(cfg.kind==='history'?{x:player.x-170,y:player.y-130}:{x:135,y:169});
+      if(selectedId==='weapon')p=knifePositions()[0]||player;
+      const q=cfg.kind==='history'?project(p.x,p.y,selectedId==='weapon'?25:22):p;
+      b={x:q.x-29,y:q.y-43,w:58,h:70};if(selectedId==='weapon')b={x:q.x-24,y:q.y-25,w:48,h:50};
+    }
+    Object.assign(selectionMark.style,{display:'block',left:b.x/W*100+'%',top:b.y/H*100+'%',width:b.w/W*100+'%',height:b.h/H*100+'%'});
+    selectionMark.textContent='';Object.assign(selectionMark.style,{color:'#172839',font:'bold 11px system-ui',textAlign:'center',textShadow:'0 0 4px #fff',paddingTop:'2px',background:'#ffd16615'});
+  }
+  window.addEventListener('message',e=>{if(e.source!==parent||e.data?.type!=='idea2game:edit-mode')return;const enabled=Boolean(e.data.enabled);selectedId=e.data.selectedId;if(enabled&&!editing){coverWasHidden=$('cover').hidden;$('cover').hidden=true;}if(!enabled&&editing){$('cover').hidden=coverWasHidden;if(selectionMark)selectionMark.style.display='none';}editing=enabled;pointer.down=false;keys.clear();if(editing&&state==='playing')pause();canvas.style.cursor=editing?'crosshair':'';});
   const canvas = document.getElementById('game');
   const ctx = canvas.getContext('2d');
   const W = 480, H = 620;
@@ -217,30 +246,33 @@
     }
     for(const e of enemies)if(e.boss&&e.warning>0){const p=project(e.attackX,e.attackY);oval(p.x,p.y,90*(cfg.view==='2d'?1:.7),90*(cfg.view==='2d'?1:.48),'#df73484d','#ffd781');ctx.font='bold 14px sans-serif';ctx.fillStyle='#fff4cc';ctx.fillText('降龙掌 · 立即躲开',p.x,p.y-12);}
     const visible=state==='ready'?[{x:player.x-170,y:player.y-130,boss:false},{x:player.x+190,y:player.y+70,boss:false},{x:player.x-70,y:player.y+230,boss:false}]:enemies;
-    const objects=[...visible.map(e=>({type:'enemy',x:e.x,y:e.y,data:e})),{type:'player',x:player.x,y:player.y},...drops.map(d=>({type:'drop',x:d.x,y:d.y})),...knifePositions().map(k=>({type:'knife',...k}))].sort((a,b)=>project(a.x,a.y).y-project(b.x,b.y).y);
+    const objects=[...visible.map(e=>({type:'enemy',x:e.x,y:e.y,data:e})),{type:'player',x:player.x,y:player.y},...drops.map(d=>({type:'drop',x:d.x,y:d.y})),...knifePositions().map(k=>({type:'knife',...k}))].filter(o=>!building||(o.type==='player'?buildPhase>=2:o.type==='enemy'?buildPhase>=3:buildPhase>=4)).slice(0,revealCount()).sort((a,b)=>project(a.x,a.y).y-project(b.x,b.y).y);
     for(const o of objects){const p=project(o.x,o.y);if(o.type==='drop'){polygon([{x:p.x,y:p.y-8},{x:p.x+6,y:p.y-3},{x:p.x,y:p.y+2},{x:p.x-6,y:p.y-3}],'#51cab0','#258a79');continue;}
       if(o.type==='knife'){const elevated=project(o.x,o.y,25);oval(p.x,p.y,8,3,'#344e4c33');ctx.save();ctx.translate(elevated.x,elevated.y);ctx.rotate(o.angle+Math.PI/2);ctx.scale(edits.weapon?.scale||1,edits.weapon?.scale||1);polygon([{x:0,y:-18},{x:6,y:6},{x:0,y:2},{x:-6,y:6}],edits.weapon?.color||(player.quality>1?'#f3d894':'#d8f6f8'),'#527f86');line(0,6,0,15,'#7d5b39',4);ctx.restore();continue;}
       if(o.type==='player'){oval(p.x,p.y,24,10,'#51a99633');monk(p.x,p.y-22);}else{warrior(p.x,p.y-22,true);if(o.data.boss){ctx.font='bold 16px serif';ctx.fillStyle='#fff2c7';ctx.fillText('乔峰 · 最终宗师',p.x,p.y-76);round(p.x-30,p.y-64,60,5,2,'#645442');round(p.x-30,p.y-64,60*Math.max(0,o.data.hp)/o.data.max,5,2,'#ba6556');}}
     }
     for(const d of damageLabels){const p=project(d.x,d.y,32);ctx.globalAlpha=Math.max(0,d.life*1.5);ctx.font='bold 17px sans-serif';ctx.fillStyle='#ffe5a4';ctx.fillText(d.value,p.x,p.y);}ctx.globalAlpha=1;
     for(const particle of particles){const p=project(particle.x,particle.y,20);ctx.globalAlpha=Math.max(0,particle.life*2);ctx.fillStyle=particle.color;ctx.fillRect(p.x,p.y,4,4);}ctx.globalAlpha=1;
+    if(building&&buildPhase<4)return;
     round(55,15,W-110,32,12,'#233e36bb');ctx.font='bold 17px serif';ctx.fillStyle='#fff1c9';ctx.fillText('鸠摩智转刀 · '+(cfg.view==='2d'?'2D':'2.5D')+'开放江湖',W/2,34);ctx.font='12px sans-serif';round(45,530,W-90,28,10,'#233e36bb');ctx.fillStyle='#fff1c9';ctx.fillText(bossSpawned?'乔峰已现身 · 注意红色掌法预警':'每5秒补充飞刀 · 拾取经验 · 60秒迎战乔峰',W/2,548);
     round(30,H-30,W-60,9,4,'#9baf9f');round(30,H-30,(W-60)*Math.min(1,player.xp/player.xpNeed),9,4,'#439f83');
     if(state==='paused'&&!upgrading){ctx.fillStyle='#23453666';ctx.fillRect(0,0,W,H);ctx.fillStyle='#fff7dc';ctx.font='bold 30px sans-serif';ctx.fillText('已暂停',W/2,H/2);}
   }
   function draw(){
     if(cfg.kind==='history'){drawIsometric();if(edits.scene?.color){ctx.fillStyle=edits.scene.color+'30';ctx.fillRect(0,0,W,H);}return;}
-    if(cfg.kind==='zombies'&&expedition){expedition.render({player,enemies,bullets,gates,particles,time,state,kills});return;}
+    if(cfg.kind==='zombies'&&expedition){expedition.render({player,enemies,bullets,gates,particles,time,state,kills,buildPhase:building?buildPhase:5,revealCount:revealCount()});return;}
     ctx.clearRect(0,0,W,H);ctx.textAlign='center';background();if(edits.scene?.color){ctx.fillStyle=edits.scene.color+'40';ctx.fillRect(0,0,W,H);}
+    if(building&&buildPhase<2)return;
     if(cfg.kind==='tiles'){
       ctx.font='bold 17px sans-serif';ctx.fillStyle='#638058';ctx.fillText('三张一组  ·  羊群等你回家',W/2,67);
-      for(const c of cards){if(c.removed)continue;const r=rect(c),active=available(c);round(r.x,r.y+6,r.w,r.h,8,active?'#b5aa84':'#8d946e','#7e8868');round(r.x,r.y,r.w,r.h-2,8,active?'#fff8de':'#b9c2a3',active?'#7c8867':'#8d9878');if(active)round(r.x+4,r.y+3,r.w-8,4,2,'#ffffffb0');ctx.globalAlpha=active?1:.4;farmIcon(c.type,r.x+r.w/2,r.y+35,.85);ctx.globalAlpha=1;}
+      for(const c of cards.slice(0,revealCount())){if(c.removed)continue;const r=rect(c),active=available(c);round(r.x,r.y+6,r.w,r.h,8,active?'#b5aa84':'#8d946e','#7e8868');round(r.x,r.y,r.w,r.h-2,8,active?'#fff8de':'#b9c2a3',active?'#7c8867':'#8d9878');if(active)round(r.x+4,r.y+3,r.w-8,4,2,'#ffffffb0');ctx.globalAlpha=active?1:.4;if(!building||buildPhase>=3)farmIcon(c.type,r.x+r.w/2,r.y+35,.85);ctx.globalAlpha=1;}
+      if(building&&buildPhase<4)return;
       round(17,461,446,76,14,'#819d62','#68844e');round(23,464,434,62,10,'#b5cc93');for(let i=0;i<7;i++){round(29+i*61,473,54,45,7,'#e8e8bc','#94ac77');if(tray[i]!==undefined)farmIcon(tray[i],56+i*61,496,.68);}
       ctx.font='13px sans-serif';ctx.fillStyle='#6f8259';ctx.fillText('暂存槽 · 最多七张',W/2,559);
     }else{
       if(cfg.kind==='gates')for(const g of gates){if(g.used)continue;for(let lane=0;lane<2;lane++){const label=lane?g.right:g.left;round(22+lane*W/2,g.y,W/2-44,55,10,label.startsWith('-')?'#aa655d':'#4d927a','#f8e2a5');ctx.font='bold 27px sans-serif';ctx.fillStyle='#fff';ctx.fillText(label,W/4+lane*W/2,g.y+36);}}
       const visibleEnemies=state==='ready'?[{x:135,y:169,boss:false},{x:322,y:110,boss:false},{x:258,y:275,boss:false}]:enemies;
-      for(const e of visibleEnemies){if(cfg.kind==='history')warrior(e.x,e.y,true);else if(cfg.kind==='gates')robot(e.x,e.y,e.boss);else zombie(e.x,e.y,e.boss);if(e.boss){round(e.x-45,e.y-e.r-23,90,7,3,'#54473f');round(e.x-45,e.y-e.r-23,90*Math.max(0,e.hp)/e.max,7,3,'#d78463');}}
+      for(const e of (building&&buildPhase<3?[]:visibleEnemies.slice(0,revealCount()))){if(cfg.kind==='history')warrior(e.x,e.y,true);else if(cfg.kind==='gates')robot(e.x,e.y,e.boss);else zombie(e.x,e.y,e.boss);if(e.boss){round(e.x-45,e.y-e.r-23,90,7,3,'#54473f');round(e.x-45,e.y-e.r-23,90*Math.max(0,e.hp)/e.max,7,3,'#d78463');}}
       for(const b of bullets){ctx.shadowBlur=8;ctx.shadowColor=cfg.kind==='history'?'#72b5bc':'#ffda84';line(b.x-b.vx*.02,b.y-b.vy*.02,b.x,b.y,cfg.kind==='history'?cfg.color:'#ffe79b',4);ctx.shadowBlur=0;}
       if(cfg.kind==='history'){
         for(const d of drops){ctx.save();ctx.translate(d.x,d.y);ctx.rotate(Math.PI/4);round(-5,-5,10,10,2,'#63d7b8','#267d73');ctx.restore();}
@@ -254,10 +286,10 @@
     for(const p of particles){ctx.globalAlpha=Math.max(0,p.life*2);ctx.fillStyle=p.color;ctx.fillRect(p.x,p.y,4,4);}ctx.globalAlpha=1;
     if(state==='paused'&&!upgrading){ctx.fillStyle='#19251799';ctx.fillRect(0,0,W,H);ctx.fillStyle='#fff7dc';ctx.font='bold 30px sans-serif';ctx.fillText('已暂停',W/2,H/2);}
   }
-  function loop(now){const dt=Math.min(.033,Math.max(0,(now-last)/1000));last=now;if(state==='playing'&&!editing)step(dt);draw();frame=requestAnimationFrame(loop);}
+  function loop(now){const dt=Math.min(.033,Math.max(0,(now-last)/1000));last=now;if(state==='playing'&&!editing)step(dt);draw();drawSelection();frame=requestAnimationFrame(loop);}
   const position = e => {const r=canvas.getBoundingClientRect();const p={x:(e.clientX-r.left)*W/r.width,y:(e.clientY-r.top)*H/r.height};return cfg.kind==='history'?unproject(p.x,p.y):p;};
   canvas.addEventListener('pointerdown',e=>{canvas.focus();const p=position(e);
-    if(editing){if(!selectionMark&&document.createElement){selectionMark=document.createElement('div');Object.assign(selectionMark.style,{position:'absolute',width:'56px',height:'56px',border:'3px solid #ffd166',borderRadius:'50%',pointerEvents:'none',zIndex:5,transform:'translate(-50%,-50%)'});canvas.parentElement.append(selectionMark);}if(selectionMark){const r=canvas.getBoundingClientRect();Object.assign(selectionMark.style,{display:'block',left:((e.clientX-r.left)/r.width*100)+'%',top:((e.clientY-r.top)/r.height*100)+'%'});}if(cfg.kind==='zombies'&&expedition?.pick){selectElement(expedition.pick(e));return;}if(cfg.kind==='tiles'){selectElement(cards.some(c=>!c.removed&&p.x>=rect(c).x&&p.x<=rect(c).x+61&&p.y>=rect(c).y&&p.y<=rect(c).y+70)?'cards':'scene');return;}const knife=cfg.kind==='history'&&knifePositions().some(k=>{const r=canvas.getBoundingClientRect(),q=project(k.x,k.y,25);return Math.hypot(q.x-(e.clientX-r.left)*W/r.width,q.y-(e.clientY-r.top)*H/r.height)<24;});selectElement(knife?'weapon':Math.hypot(player.x-p.x,player.y-p.y)<40?'player':enemies.some(n=>Math.hypot(n.x-p.x,n.y-p.y)<n.r+20)?'enemy':'scene');return;}pointer={...p,down:true};canvas.setPointerCapture(e.pointerId);if(state==='playing'&&cfg.kind==='tiles')chooseCard(p.x,p.y);});
+    if(editing){if(cfg.kind==='zombies'&&expedition?.pick){selectElement(expedition.pick(e));return;}if(cfg.kind==='tiles'){selectedCard=[...cards].reverse().find(c=>!c.removed&&available(c)&&p.x>=rect(c).x&&p.x<=rect(c).x+rect(c).w&&p.y>=rect(c).y&&p.y<=rect(c).y+rect(c).h);selectElement(selectedCard?'cards':'scene');return;}const knife=cfg.kind==='history'&&knifePositions().some(k=>{const r=canvas.getBoundingClientRect(),q=project(k.x,k.y,25);return Math.hypot(q.x-(e.clientX-r.left)*W/r.width,q.y-(e.clientY-r.top)*H/r.height)<24;});selectedEnemy=(state==='ready'?[{x:player.x-170,y:player.y-130},{x:player.x+190,y:player.y+70},{x:player.x-70,y:player.y+230}]:enemies).find(n=>Math.hypot(n.x-p.x,n.y-p.y)<40);selectElement(knife?'weapon':Math.hypot(player.x-p.x,player.y-p.y)<40?'player':Boolean(selectedEnemy)?'enemy':'scene');return;}pointer={...p,down:true};canvas.setPointerCapture(e.pointerId);if(state==='playing'&&cfg.kind==='tiles')chooseCard(p.x,p.y);});
   canvas.addEventListener('pointermove',e=>{if(pointer.down)Object.assign(pointer,position(e));});
   for(const ev of ['pointerup','pointercancel'])canvas.addEventListener(ev,()=>pointer.down=false);
   document.addEventListener('keydown',e=>{if(document.activeElement!==canvas)return;if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown',' '].includes(e.key))e.preventDefault();keys.add(e.key);if(cfg.kind==='zombies'&&['1','2','3'].includes(e.key))useSkill({1:'airstrike',2:'reinforce',3:'rally'}[e.key]);if(e.key===' '&&!e.repeat)pause();});

@@ -6,14 +6,15 @@ import { webcrypto } from 'node:crypto';
 const runtime=fs.readFileSync('public/demo-games/runtime.js','utf8');
 function game(kind,difficulty=1,previewStage=5){
  const handlers={},els={};let now=0;
- const context=new Proxy({}, {get:(target,key)=>target[key]||(()=>{}),set:(t,k,v)=>(t[k]=v,true)});
+ let drawCalls=0;
+ const context=new Proxy({}, {get:(target,key)=>target[key]||(()=>{drawCalls++}),set:(t,k,v)=>(t[k]=v,true)});
  for(const id of ['game','stats','best','choices','pause','cover','coverTitle','coverText','start','reset','undo','level','traits','airstrike','reinforce','rally']) els[id]={hidden:false,textContent:'',onclick:null};
  els.game={...els.game,style:{},getContext:()=>context,focus:()=>{doc.activeElement=els.game},addEventListener:(name,fn)=>handlers[name]=fn,setPointerCapture:()=>{},getBoundingClientRect:()=>({left:0,top:0,width:480,height:620})};
  const choices=['damage','rate','heal'].map(up=>({dataset:{up}}));els.choices.querySelectorAll=()=>choices;
  const doc={getElementById:id=>els[id],activeElement:null,addEventListener:(name,fn)=>handlers['document:'+name]=fn};
  const parent={postMessage:data=>handlers.selected=data};const sandbox={parent,window:{GAME_CONFIG:{kind,view:'2.5d',previewStage,name:'test',difficulty,speed:1,color:'#7de4bf',hero:'弓将'},devicePixelRatio:1,addEventListener:(name,fn)=>handlers['window:'+name]=fn},document:doc,performance:{now:()=>now},requestAnimationFrame:()=>1,cancelAnimationFrame:()=>{},localStorage:{getItem:()=>null,setItem:()=>{}},Math,console};
  vm.runInNewContext(runtime.replace('init();frame=requestAnimationFrame(loop);','window.inspect={snapshot:()=>({state,time,player,cards,tray,enemies,gates,kills,upgrading,bullets,drops,diff,boost,skillCooldown}),project,unproject,step,draw,enemy,chooseCard,available,knifePositions,setTime:v=>time=v,setEnemies:v=>enemies=v,setDrops:v=>drops=v,setGates:v=>gates=v,setKills:v=>kills=v};init();frame=requestAnimationFrame(loop);'),sandbox);
- return{els,handlers,choices,api:sandbox.window.inspect,tick(dt){now+=dt*1000;if(sandbox.window.inspect.snapshot().state==='playing')sandbox.window.inspect.step(dt)}};
+ return{els,handlers,choices,api:sandbox.window.inspect,drawCalls:()=>drawCalls,tick(dt){now+=dt*1000;if(sandbox.window.inspect.snapshot().state==='playing')sandbox.window.inspect.step(dt)}};
 }
 for(let attempt=0;attempt<12;attempt++){
  const g=game('tiles',attempt%3+1);g.els.start.onclick();const {cards}=g.api.snapshot();
@@ -31,8 +32,11 @@ battle.api.setDrops([{x:hero.x,y:hero.y,value:hero.xpNeed}]);battle.tick(.01);ba
 const source=ts.transpileModule(fs.readFileSync('src/demo/games.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;const mod={exports:{}};vm.runInNewContext(source,{exports:mod.exports,crypto:webcrypto,TextEncoder,TextDecoder,btoa,atob,URL,console});const api=mod.exports;const work=api.makeWork('history');work.name='测试中文 🎮 </script>';const restored=api.decodeWork(api.encodeWork(work));assert.equal(restored.name,work.name);assert.equal(restored.kind,'history');assert(!api.gameHtml(work,'/runtime.js').includes('🎮 </script>'));assert.throws(()=>api.decodeWork('invalid'));assert.throws(()=>api.normalizeWork({kind:'invalid'}));
 const locked=game('zombies',1,3);locked.els.start.onclick();assert.equal(locked.api.snapshot().state,'ready');assert.equal(locked.els.start.disabled,true);
 const defense=game('zombies');assert.equal(defense.api.snapshot().player.hp,150);defense.els.start.onclick();defense.api.setKills(10);defense.tick(.01);assert.equal(defense.api.snapshot().upgrading,true);const oldRate=defense.api.snapshot().player.rate;defense.choices[1].onclick();assert(defense.api.snapshot().player.rate<oldRate);assert(defense.els.traits.textContent.includes('射速 +25% ×1'));defense.els.reset.onclick();assert.equal(defense.api.snapshot().player.hp,150);assert.equal(defense.api.snapshot().kills,0);
-assert(api.buildPreview(work,'/runtime.js',0).includes('从想法开始构建'));assert(api.buildPreview(work,'/runtime.js',1).includes('界面骨架已就绪'));assert(api.buildPreview(work,'/runtime.js',3).includes('\"previewStage\":3'));
+assert(api.buildPreview(work,'/runtime.js',0).includes('从想法开始构建'));assert(api.buildPreview(work,'/runtime.js',1).includes('\"previewStage\":1'));assert(api.buildPreview(work,'/runtime.js',3).includes('\"previewStage\":3'));
 console.log('PASS: 构建阶段禁止开玩、守城生命与射速强化、')
+const phaseDraws=[1,2,3,4].map(phase=>{const g=game('history',1,phase);g.tick(10);g.api.draw();assert.equal(g.els.start.disabled,true);return g.drawCalls()});
+for(let i=1;i<phaseDraws.length;i++)assert(phaseDraws[i]>phaseDraws[i-1],'场景、角色、敌人、飞刀阶段应逐步增加实际绘制元素');
+console.log('PASS: 实际构建画面分阶段增加场景、角色、敌人与武器，完成前保持禁止游玩');
 console.log('PASS: 12随机叠层牌局通关、撤回、重开、数字门单次结算、暂停冻结、飞刀碰撞、掉落拾取、数量品质升级与失焦暂停、中文作品分享还原和数据校验');
 
 for(const [x,y] of [[20,45],[240,310],[460,565]]){const p=battle.api.project(x,y);const r=battle.api.unproject(p.x,p.y);assert(Math.abs(r.x-x)<1e-7&&Math.abs(r.y-y)<1e-7)}
